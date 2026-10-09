@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!-- حلو الملك — الموقع. الملفات: index.html (الهيكل) + style.css (التنسيق) + script.js (كل الكود) -->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>حلو الملك</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="upd" hidden>فيه تحديثات جديدة في المتجر — اضغط للتحديث</div>
+<div id="top"></div>      <!-- الشريط الذهبي + الهيدر + القائمة (بيتعمل من script.js) -->
+<main id="view"></main>   <!-- محتوى الصفحة الحالية -->
+<footer id="foot"></footer>
+<div id="drawer"></div>   <!-- النافذة الجانبية: دخول / حساب / اختيار الفرع -->
+<div id="toast"></div>
+
+<script>
+/* رابط السيرفر. السيرفر شغّال ملفات الموقع نفسها فبنسيبه فاضي (نفس الدومين).
+   لو رفعت ملفات الموقع على دومين مختلف عن السيرفر، اكتب رابطه هنا، مثال:
+   window.API_BASE = 'http://localhost:5000'; */
+window.API_BASE = '';
+</script>
+<script>
+/* ======== تحميل البيانات من سيرفر Node.js (بديل Firebase) ========
+   1) نجيب كل البيانات مرة واحدة من /api/bootstrap (لو مردش في 6 ثواني بنكمّل بصفحة فاضية)
+   2) نحمّل script.js
+   3) نراقب settings/meta كل 30 ثانية: الأدمن بيحدّثه مع كل تغيير فيظهر شريط التحديث للزوار */
+(function () {
+  const API = window.API_BASE || '';
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+  const load = fetch(API + '/api/bootstrap').then(r => r.json()).catch(() => null);
+  Promise.race([load, wait(6000).then(() => null)]).then((j) => {
+    // نفس شكل البيانات اللي كانت بتيجي من Firebase (window.REMOTE)
+    window.REMOTE = j ? {
+      cats: j.cats || [], prods: j.prods || [], branches: j.branches || [],
+      settings: { ...(j.home || {}), promos: j.promos || {} },
+      brand: j.brand || {}
+    } : undefined;
+    const s = document.createElement('script'); s.src = 'script.js'; document.body.appendChild(s);
+    let v0 = null;
+    setInterval(async () => {
+      try {
+        const r = await fetch(API + '/api/settings/meta'); const m = await r.json();
+        if (v0 === null) { v0 = m.v || 0; return; }              // أول مرة: بنسجّل الرقم الحالي بس
+        if ((m.v || 0) !== v0) { v0 = m.v || 0; const u = document.getElementById('upd'); u.hidden = false; u.onclick = () => location.reload(); }
+      } catch (e) {}
+    }, 30000);
+  });
+})();
+</script>
+</body>
+</html>
