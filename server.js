@@ -13,12 +13,12 @@ const ensureAdmin = require('./src/utils/bootstrap');
 const app = express();
 
 /* الوسيطات (Middleware) */
-app.use(cors());                            // السماح للفرونت إند (أي دومين) بالاتصال بالـ APIs
+app.use(cors());                                    // السماح للفرونت إند (أي دومين) بالاتصال بالـ APIs
 app.use(express.json({ limit: '10mb' }));   // الصور بتترفع base64 فمحتاجين حد أقصى كبير
-app.use(express.static(path.join(__dirname, '..', 'public'))); // ملفات الموقع (index.html و script.js ...)
+app.use(express.static(path.join(__dirname))); // ملفات الموقع الثابتة في الجذر
 
 /* نقاط النهاية */
-app.use('/api', require('./src/routes/shop'));     // APIs الموقع للزوار
+app.use('/api', require('./src/routes/shop'));      // APIs الموقع للزوار
 app.use('/api/admin', require('./src/routes/admin')); // APIs لوحة التحكم (محمية)
 
 /* أي رابط /api مش معروف */
@@ -32,9 +32,17 @@ app.use((err, req, res, next) => {
   res.status(bad ? 400 : 500).json({ code: 'SERVER', message: bad ? 'بيانات غير صحيحة' : 'حصلت مشكلة في السيرفر' });
 });
 
-/* التشغيل: اتصال بالقاعدة الأول، وبعدين توليد الأدمن الأول (لو مفيش)، وبعدين الاستماع */
+/* الاتصال بقاعدة البيانات لبيئة العمل (محلي أو Vercel Serverless) */
 const PORT = process.env.PORT || 5000;
-connectDB().then(async () => {
-  await ensureAdmin();
-  app.listen(PORT, () => console.log(`✓ سيرفر حلو الملك شغّال على http://localhost:${PORT}`));
-});
+
+if (process.env.NODE_ENV !== 'production') {
+  connectDB().then(async () => {
+    await ensureAdmin();
+    app.listen(PORT, () => console.log(`✓ سيرفر حلو الملك شغّال على http://localhost:${PORT}`));
+  });
+} else {
+  // الاتصال في بيئة الإنتاج على Vercel
+  connectDB();
+}
+
+module.exports = app;
